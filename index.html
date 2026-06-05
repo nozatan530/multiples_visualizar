@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiples Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06060f;
+    --surface: #0e0e1f;
+    --surface2: #161628;
+    --border: #1e1e3a;
+    --text: #e8e8ff;
+    --text-dim: #4a4a7a;
+    --text-muted: #2a2a4a;
+    --btn-bg: #0e0e1f;
+    --btn-border: #2a2a4a;
+    --btn-hover: #1a1a35;
+    --cell-bg: #0e0e1f;
+    --cell-border: #1a1a30;
+    --cell-text: #2a2a5a;
+    --toggle-bg: #1a1a30;
+    --shadow: rgba(0,0,0,0.5);
+  }
+  [data-theme="light"] {
+    --bg: #f4f4fa;
+    --surface: #ffffff;
+    --surface2: #eeeef8;
+    --border: #d0d0e8;
+    --text: #1a1a3a;
+    --text-dim: #8888aa;
+    --text-muted: #ccccdd;
+    --btn-bg: #ffffff;
+    --btn-border: #d0d0e8;
+    --btn-hover: #eeeef8;
+    --cell-bg: #f8f8ff;
+    --cell-border: #e0e0f0;
+    --cell-text: #c0c0d8;
+    --toggle-bg: #e0e0f0;
+    --shadow: rgba(100,100,160,0.12);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding: 20px 12px 40px;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 680px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .title-block { display:flex; flex-direction:column; gap:2px; }
+  .title {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.9rem, 3vw, 1.15rem);
+    letter-spacing: 0.12em;
+    color: var(--text);
+    font-weight: 700;
+  }
+  .sub { font-size: 0.68rem; color: var(--text-dim); letter-spacing: 0.08em; }
+
+  /* ── Theme toggle ── */
+  .theme-btn {
+    background: var(--toggle-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    font-family: 'Space Mono', monospace;
+  }
+  .theme-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+  /* ── Controls ── */
+  .controls {
+    max-width: 680px;
+    margin: 0 auto 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 4px 20px var(--shadow);
+  }
+
+  /* 数字選択 */
+  .selector-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .num-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--btn-border);
+    background: var(--btn-bg);
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex; align-items:center; justify-content:center;
+    font-family: 'Space Mono', monospace;
+    position: relative;
+  }
+  .num-btn:hover { background: var(--btn-hover); color: var(--text); }
+  .num-btn.active {
+    background: var(--c);
+    border-color: var(--c);
+    color: #fff;
+    box-shadow: 0 0 12px var(--c), 0 0 4px var(--c);
+    transform: scale(1.1);
+  }
+  [data-theme="light"] .num-btn.active { box-shadow: 0 0 8px var(--c); }
+
+  /* グリッドサイズ & 操作 */
+  .row2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .label-sm {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    font-family: 'Space Mono', monospace;
+  }
+  .range-wrap { display:flex; align-items:center; gap:8px; flex:1; min-width:160px; }
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #6677ff;
+    box-shadow: 0 0 6px #6677ff;
+    cursor: pointer;
+  }
+  .range-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* 点灯アニメーション & リセット */
+  .action-btns { display:flex; gap:8px; margin-left:auto; }
+  .act-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--btn-bg);
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .act-btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .act-btn.running {
+    background: #6677ff;
+    border-color: #6677ff;
+    color: #fff;
+    box-shadow: 0 0 10px #6677ff66;
+  }
+  .act-btn.reset-btn:hover { border-color: #ff4466; color: #ff4466; }
+
+  /* info bar */
+  .info-bar {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  }
+  .tag {
+    padding: 3px 10px; border-radius: 12px;
+    font-size: 0.68rem; font-weight: 700;
+    border: 1px solid; letter-spacing: 0.04em;
+    font-family: 'Space Mono', monospace;
+    animation: pop 0.25s ease;
+  }
+  @keyframes pop {
+    from { opacity:0; transform:scale(0.8); }
+    to   { opacity:1; transform:scale(1); }
+  }
+
+  /* ── Grid ── */
+  .grid-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 4px 20px var(--shadow);
+    overflow: hidden;
+  }
+  .grid {
+    display: grid;
+    gap: 4px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    border-radius: 5px;
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    display: flex; align-items:center; justify-content:center;
+    font-size: clamp(0.45rem, 1.5vw, 0.75rem);
+    font-weight: 700;
+    color: var(--cell-text);
+    font-family: 'Space Mono', monospace;
+    transition: background 0.28s, border-color 0.28s, color 0.28s, transform 0.28s, box-shadow 0.28s;
+    will-change: transform;
+  }
+  .cell.lit {
+    background: color-mix(in srgb, var(--c) 22%, var(--cell-bg));
+    border-color: var(--c);
+    color: var(--text);
+    transform: scale(1.06);
+    z-index: 2;
+    position: relative;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--c) 50%, transparent);
+  }
+  [data-theme="light"] .cell.lit {
+    background: color-mix(in srgb, var(--c) 15%, #ffffff);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--c) 40%, transparent);
+  }
+  .cell.dual {
+    background: color-mix(in srgb, #cc44ff 25%, var(--cell-bg));
+    border-color: #cc44ff;
+    color: var(--text);
+    transform: scale(1.1);
+    z-index: 3;
+    position: relative;
+    box-shadow: 0 0 14px #cc44ff88, 0 0 3px #fff;
+  }
+  [data-theme="light"] .cell.dual {
+    box-shadow: 0 0 10px #cc44ff66;
+  }
+  .cell.anim-pulse {
+    animation: pulse 0.4s ease;
+  }
+  @keyframes pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.18); }
+    100% { transform: scale(1.06); }
+  }
+
+  /* hint */
+  .hint {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 10px;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title-block">
+    <div class="title">MULTIPLES VISUALIZER</div>
+    <div class="sub">1〜20 の倍数を光で見る &nbsp;|&nbsp; 掛け算・倍数の探究ツール</div>
+  </div>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ LIGHT</button>
+</div>
+
+<div class="controls">
+  <!-- 数字選択 -->
+  <div class="selector-row" id="selector"></div>
+
+  <!-- グリッドサイズ -->
+  <div class="row2">
+    <span class="label-sm">GRID SIZE</span>
+    <div class="range-wrap">
+      <input type="range" id="sizeRange" min="100" max="1000" step="100" value="200">
+      <span class="range-val" id="sizeVal">200</span>
+    </div>
+    <div class="action-btns">
+      <button class="act-btn" id="animBtn" onclick="toggleAnim()">▶ 順に点灯</button>
+      <button class="act-btn reset-btn" onclick="resetAll()">✕ リセット</button>
+    </div>
+  </div>
+
+  <!-- info -->
+  <div class="info-bar" id="infoBar">
+    <span class="tag" style="color:var(--text-muted);border-color:var(--border);">数字を選んでください</span>
+  </div>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="grid"></div>
+  <p class="hint">複数選ぶと共通の倍数（最小公倍数）が 💜 紫に光ります</p>
+</div>
+
+<script>
+const COLORS = [null,
+  '#ff4466','#ff7722','#ffcc00','#66dd00','#00ccaa',
+  '#00aaff','#6677ff','#aa44ff','#ff44cc','#ff6644',
+  '#44ffaa','#ffee44','#44aaff','#ff4488','#88ff44',
+  '#ff8800','#44ffdd','#aa88ff','#ff6688','#88ff66'
+];
+
+let MAX = 200;
+let selected = new Set();
+let animTimer = null;
+let animIdx = 0;
+let isAnimating = false;
+
+// ── Theme ──
+function toggleTheme() {
+  const d = document.documentElement;
+  const light = d.getAttribute('data-theme') === 'light';
+  d.setAttribute('data-theme', light ? '' : 'light');
+  document.getElementById('themeBtn').textContent = light ? '☀ LIGHT' : '☾ DARK';
+}
+
+// ── 数字ボタン ──
+const selEl = document.getElementById('selector');
+for (let n = 1; n <= 20; n++) {
+  const b = document.createElement('button');
+  b.className = 'num-btn';
+  b.textContent = n;
+  b.style.setProperty('--c', COLORS[n]);
+  b.id = 'nb' + n;
+  b.onclick = () => {
+    if (selected.has(n)) selected.delete(n);
+    else selected.add(n);
+    b.classList.toggle('active');
+    stopAnim();
+    render();
+  };
+  selEl.appendChild(b);
+}
+
+// ── グリッド生成 ──
+function buildGrid(max) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const cols = max <= 100 ? 10 : max <= 200 ? 10 : max <= 500 ? 20 : 25;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  for (let i = 1; i <= max; i++) {
+    const d = document.createElement('div');
+    d.className = 'cell';
+    d.textContent = i;
+    d.id = 'c' + i;
+    grid.appendChild(d);
+  }
+}
+
+// ── Range ──
+const sizeRange = document.getElementById('sizeRange');
+const sizeVal   = document.getElementById('sizeVal');
+sizeRange.addEventListener('input', () => {
+  MAX = +sizeRange.value;
+  sizeVal.textContent = MAX;
+  stopAnim();
+  buildGrid(MAX);
+  render();
+});
+
+// ── Helpers ──
+function gcd(a,b){ return b===0?a:gcd(b,a%b); }
+function lcm(a,b){ return a/gcd(a,b)*b; }
+
+function calcLCM() {
+  if (selected.size < 2) return null;
+  const arr = [...selected];
+  let l = arr[0];
+  for (let i=1;i<arr.length;i++) l = lcm(l,arr[i]);
+  return l <= MAX ? l : null;
+}
+
+// ── Render ──
+function render() {
+  const hits = new Map();
+  selected.forEach(n => {
+    for (let m = n; m <= MAX; m += n) {
+      if (!hits.has(m)) hits.set(m, []);
+      hits.get(m).push(n);
+    }
+  });
+
+  const l = calcLCM();
+  const lcmSet = new Set();
+  if (l) for (let m = l; m <= MAX; m += l) lcmSet.add(m);
+
+  for (let i = 1; i <= MAX; i++) {
+    const cell = document.getElementById('c'+i);
+    if (!cell) continue;
+    cell.className = 'cell';
+    cell.style.removeProperty('--c');
+    if (lcmSet.has(i) && selected.size >= 2) {
+      cell.className = 'cell dual';
+    } else if (hits.has(i)) {
+      const ns = hits.get(i);
+      const c = COLORS[ns[ns.length-1]];
+      cell.className = 'cell lit';
+      cell.style.setProperty('--c', c);
+    }
+  }
+  updateInfo();
+}
+
+function updateInfo() {
+  const bar = document.getElementById('infoBar');
+  bar.innerHTML = '';
+  if (!selected.size) {
+    bar.innerHTML = '<span class="tag" style="color:var(--text-muted);border-color:var(--border);">数字を選んでください</span>';
+    return;
+  }
+  selected.forEach(n => {
+    const c = COLORS[n];
+    const t = document.createElement('span');
+    t.className = 'tag';
+    t.textContent = `${n} の倍数`;
+    t.style.cssText = `color:${c};border-color:${c};background:${c}20;`;
+    bar.appendChild(t);
+  });
+  const l = calcLCM();
+  if (l) {
+    const t = document.createElement('span');
+    t.className = 'tag';
+    t.textContent = `LCM = ${l}`;
+    t.style.cssText = 'color:#cc44ff;border-color:#cc44ff;background:#cc44ff20;';
+    bar.appendChild(t);
+  }
+}
+
+// ── アニメーション ──
+// 1→2→3…と、n の倍数ごとに全点灯→次へ切り替わる
+function toggleAnim() {
+  if (isAnimating) { stopAnim(); return; }
+  startAnim();
+}
+
+function startAnim() {
+  isAnimating = true;
+  document.getElementById('animBtn').classList.add('running');
+  document.getElementById('animBtn').textContent = '■ 停止';
+
+  // 1〜20 を順に流す（選択に関わらず全数字）
+  const sequence = Array.from({length: 20}, (_, i) => i + 1);
+  let idx = 0;
+
+  // 現在表示中の n をハイライトして info も更新
+  function showStep(n) {
+    const c = COLORS[n];
+    // グリッドをリセット
+    for (let i = 1; i <= MAX; i++) {
+      const cell = document.getElementById('c' + i);
+      if (!cell) continue;
+      cell.className = 'cell';
+      cell.style.removeProperty('--c');
+    }
+    // n の倍数を点灯
+    for (let m = n; m <= MAX; m += n) {
+      const cell = document.getElementById('c' + m);
+      if (!cell) continue;
+      cell.className = 'cell lit anim-pulse';
+      cell.style.setProperty('--c', c);
+    }
+    // info bar を現在の n だけ表示
+    const bar = document.getElementById('infoBar');
+    bar.innerHTML = '';
+    const t = document.createElement('span');
+    t.className = 'tag';
+    t.textContent = `${n} の倍数`;
+    t.style.cssText = `color:${c};border-color:${c};background:${c}20;`;
+    bar.appendChild(t);
+    // 数字ボタンを現在の n だけ active に
+    for (let k = 1; k <= 20; k++) {
+      const btn = document.getElementById('nb' + k);
+      if (btn) btn.classList.toggle('active', k === n);
+    }
+  }
+
+  const HOLD = 900; // 各数字の表示時間(ms)
+
+  function step() {
+    if (!isAnimating) return;
+    if (idx >= sequence.length) {
+      // 終わったら選択状態を復元して通常 render
+      stopAnim();
+      // ボタン状態を selected に戻す
+      for (let k = 1; k <= 20; k++) {
+        const btn = document.getElementById('nb' + k);
+        if (btn) btn.classList.toggle('active', selected.has(k));
+      }
+      render();
+      return;
+    }
+    showStep(sequence[idx]);
+    idx++;
+    animTimer = setTimeout(step, HOLD);
+  }
+  step();
+}
+
+function stopAnim() {
+  isAnimating = false;
+  if (animTimer) clearTimeout(animTimer);
+  const btn = document.getElementById('animBtn');
+  btn.classList.remove('running');
+  btn.textContent = '▶ 順に点灯';
+}
+
+// ── リセット ──
+function resetAll() {
+  stopAnim();
+  selected.clear();
+  for (let n = 1; n <= 20; n++) {
+    document.getElementById('nb'+n)?.classList.remove('active');
+  }
+  for (let i = 1; i <= MAX; i++) {
+    const c = document.getElementById('c'+i);
+    if (c) { c.className='cell'; c.style.removeProperty('--c'); }
+  }
+  updateInfo();
+}
+
+// ── Init ──
+buildGrid(MAX);
+</script>
+</body>
+</html>
