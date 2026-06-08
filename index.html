@@ -94,6 +94,7 @@
     font-family: 'Space Mono', monospace;
   }
   .theme-btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .header-btns { display:flex; gap:8px; }
 
   /* ── Controls ── */
   .controls {
@@ -296,9 +297,12 @@
 <div class="header">
   <div class="title-block">
     <div class="title">MULTIPLES VISUALIZER</div>
-    <div class="sub">1〜20 の倍数を光で見る &nbsp;|&nbsp; 掛け算・倍数の探究ツール</div>
+    <div class="sub" data-i18n="subtitle">1〜20 の倍数を光で見る &nbsp;|&nbsp; 掛け算・倍数の探究ツール</div>
   </div>
-  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ LIGHT</button>
+  <div class="header-btns">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ LIGHT</button>
+    <button class="theme-btn" id="langBtn" onclick="toggleLang()">EN</button>
+  </div>
 </div>
 
 <div class="controls">
@@ -320,13 +324,13 @@
 
   <!-- info -->
   <div class="info-bar" id="infoBar">
-    <span class="tag" style="color:var(--text-muted);border-color:var(--border);">数字を選んでください</span>
+    <span class="tag" style="color:var(--text-muted);border-color:var(--border);" data-i18n="selectPrompt">数字を選んでください</span>
   </div>
 </div>
 
 <div class="grid-wrap">
   <div class="grid" id="grid"></div>
-  <p class="hint">複数選ぶと共通の倍数（最小公倍数）が 💜 紫に光ります</p>
+  <p class="hint" data-i18n="hint">複数選ぶと共通の倍数（最小公倍数）が 💜 紫に光ります</p>
 </div>
 
 <script>
@@ -342,6 +346,45 @@ let selected = new Set();
 let animTimer = null;
 let animIdx = 0;
 let isAnimating = false;
+
+// ── i18n ──
+const I18N = {
+  ja: {
+    subtitle: '1〜20 の倍数を光で見る  |  掛け算・倍数の探究ツール',
+    selectPrompt: '数字を選んでください',
+    hint: '複数選ぶと共通の倍数（最小公倍数）が 💜 紫に光ります',
+    animPlay: '▶ 順に点灯',
+    animStop: '■ 停止',
+    resetBtn: '✕ リセット',
+    multipleOf: n => `${n} の倍数`,
+  },
+  en: {
+    subtitle: 'See multiples of 1–20 light up  |  a tool to explore multiplication & multiples',
+    selectPrompt: 'Please select numbers',
+    hint: 'Pick more than one and their common multiples (LCM) glow 💜 purple',
+    animPlay: '▶ Play in order',
+    animStop: '■ Stop',
+    resetBtn: '✕ Reset',
+    multipleOf: n => `Multiples of ${n}`,
+  }
+};
+let lang = 'ja';
+function t(key, ...args) {
+  const v = I18N[lang][key];
+  return typeof v === 'function' ? v(...args) : v;
+}
+function applyLang(newLang) {
+  lang = newLang;
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
+  document.getElementById('animBtn').textContent = isAnimating ? t('animStop') : t('animPlay');
+  document.querySelector('.act-btn.reset-btn').textContent = t('resetBtn');
+  updateInfo();
+}
+function toggleLang() {
+  applyLang(lang === 'ja' ? 'en' : 'ja');
+}
 
 // ── Theme ──
 function toggleTheme() {
@@ -442,24 +485,24 @@ function updateInfo() {
   const bar = document.getElementById('infoBar');
   bar.innerHTML = '';
   if (!selected.size) {
-    bar.innerHTML = '<span class="tag" style="color:var(--text-muted);border-color:var(--border);">数字を選んでください</span>';
+    bar.innerHTML = `<span class="tag" style="color:var(--text-muted);border-color:var(--border);" data-i18n="selectPrompt">${t('selectPrompt')}</span>`;
     return;
   }
   selected.forEach(n => {
     const c = COLORS[n];
-    const t = document.createElement('span');
-    t.className = 'tag';
-    t.textContent = `${n} の倍数`;
-    t.style.cssText = `color:${c};border-color:${c};background:${c}20;`;
-    bar.appendChild(t);
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag';
+    tagEl.textContent = t('multipleOf', n);
+    tagEl.style.cssText = `color:${c};border-color:${c};background:${c}20;`;
+    bar.appendChild(tagEl);
   });
   const l = calcLCM();
   if (l) {
-    const t = document.createElement('span');
-    t.className = 'tag';
-    t.textContent = `LCM = ${l}`;
-    t.style.cssText = 'color:#cc44ff;border-color:#cc44ff;background:#cc44ff20;';
-    bar.appendChild(t);
+    const lcmEl = document.createElement('span');
+    lcmEl.className = 'tag';
+    lcmEl.textContent = `LCM = ${l}`;
+    lcmEl.style.cssText = 'color:#cc44ff;border-color:#cc44ff;background:#cc44ff20;';
+    bar.appendChild(lcmEl);
   }
 }
 
@@ -473,7 +516,7 @@ function toggleAnim() {
 function startAnim() {
   isAnimating = true;
   document.getElementById('animBtn').classList.add('running');
-  document.getElementById('animBtn').textContent = '■ 停止';
+  document.getElementById('animBtn').textContent = t('animStop');
 
   // 1〜20 を順に流す（選択に関わらず全数字）
   const sequence = Array.from({length: 20}, (_, i) => i + 1);
@@ -499,11 +542,11 @@ function startAnim() {
     // info bar を現在の n だけ表示
     const bar = document.getElementById('infoBar');
     bar.innerHTML = '';
-    const t = document.createElement('span');
-    t.className = 'tag';
-    t.textContent = `${n} の倍数`;
-    t.style.cssText = `color:${c};border-color:${c};background:${c}20;`;
-    bar.appendChild(t);
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag';
+    tagEl.textContent = t('multipleOf', n);
+    tagEl.style.cssText = `color:${c};border-color:${c};background:${c}20;`;
+    bar.appendChild(tagEl);
     // 数字ボタンを現在の n だけ active に
     for (let k = 1; k <= 20; k++) {
       const btn = document.getElementById('nb' + k);
@@ -538,7 +581,7 @@ function stopAnim() {
   if (animTimer) clearTimeout(animTimer);
   const btn = document.getElementById('animBtn');
   btn.classList.remove('running');
-  btn.textContent = '▶ 順に点灯';
+  btn.textContent = t('animPlay');
 }
 
 // ── リセット ──
