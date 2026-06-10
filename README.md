@@ -21,3 +21,6 @@
 ## デモ
 
 `index.html` をブラウザで開くだけで動作します。インストール不要。
+
+[のざたん](https://meetupsensei.com) — 会いに行けるセンセイ  
+[Voicy「学びのセカンドオピニオン」](https://voicy.jp/channel/3708) 
